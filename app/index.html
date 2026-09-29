@@ -1,0 +1,954 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Network Traffic Analyzer</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            color: #f5f2ff;
+            background:
+                radial-gradient(circle at 85% 20%, rgba(190, 65, 255, 0.18), transparent 30%),
+                radial-gradient(circle at 10% 80%, rgba(255, 65, 180, 0.12), transparent 30%),
+                linear-gradient(135deg, #050817, #0a1025 50%, #080514);
+            overflow-x: hidden;
+        }
+
+        /* Background glow */
+        body::before {
+            content: "";
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            right: -150px;
+            top: 80px;
+            background: radial-gradient(
+                circle,
+                rgba(255, 66, 190, 0.18),
+                transparent 70%
+            );
+            filter: blur(20px);
+            pointer-events: none;
+        }
+
+        /* NAVBAR */
+        nav {
+            width: 90%;
+            max-width: 1400px;
+            margin: 25px auto;
+            padding: 12px 20px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: rgba(16, 22, 48, 0.55);
+            border: 1px solid rgba(210, 120, 255, 0.25);
+            border-radius: 25px;
+
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 30px rgba(173, 70, 255, 0.08);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #d9d5ef;
+            padding: 12px 25px;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover,
+        .nav-links .active {
+            color: white;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 75, 190, 0.25),
+                rgba(145, 70, 255, 0.25)
+            );
+            box-shadow: 0 0 20px rgba(255, 80, 200, 0.15);
+        }
+
+        /* HEADER */
+        .hero {
+            width: 90%;
+            max-width: 1400px;
+            margin: 55px auto 35px;
+        }
+
+        .hero h1 {
+            font-size: clamp(38px, 5vw, 68px);
+            font-weight: 700;
+            letter-spacing: -2px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(
+                90deg,
+                #ff72c8,
+                #bd70ff,
+                #ff75d0
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            margin-top: 12px;
+            font-size: 19px;
+            color: #9ca8ca;
+        }
+
+        .hero-line {
+            width: 75px;
+            height: 4px;
+            margin-top: 20px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #ff61bd, #9e5cff);
+            box-shadow: 0 0 15px #ff61bd;
+        }
+
+        /* MAIN */
+        .main-container {
+            width: 90%;
+            max-width: 1400px;
+            margin: auto;
+
+            display: grid;
+            grid-template-columns: 1.2fr 0.9fr;
+            gap: 25px;
+        }
+
+        /* GLASS CARD */
+        .card {
+            background: rgba(12, 19, 43, 0.72);
+            border: 1px solid rgba(192, 107, 255, 0.3);
+            border-radius: 25px;
+            padding: 30px;
+
+            backdrop-filter: blur(20px);
+
+            box-shadow:
+                0 15px 50px rgba(0, 0, 0, 0.35),
+                inset 0 0 30px rgba(156, 70, 255, 0.025);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .icon {
+            width: 48px;
+            height: 48px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 15px;
+
+            font-size: 24px;
+
+            background: linear-gradient(
+                135deg,
+                rgba(255, 83, 192, 0.2),
+                rgba(155, 80, 255, 0.2)
+            );
+
+            border: 1px solid rgba(255, 105, 210, 0.2);
+        }
+
+        .card h2 {
+            font-size: 25px;
+        }
+
+        .card-subtitle {
+            color: #8e9abe;
+            margin-bottom: 28px;
+        }
+
+        /* FORM */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            color: #cbd1e8;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .label-icon {
+            color: #ff72c8;
+            margin-right: 7px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 14px 16px;
+
+            color: white;
+            background: rgba(5, 10, 27, 0.75);
+
+            border: 1px solid #39476e;
+            border-radius: 12px;
+
+            outline: none;
+            font-size: 15px;
+
+            transition: 0.3s;
+        }
+
+        input::placeholder {
+            color: #66708f;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #e263c6;
+            box-shadow: 0 0 15px rgba(231, 91, 195, 0.18);
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        /* BUTTON */
+        .predict-btn {
+            width: 100%;
+            margin-top: 25px;
+            padding: 17px;
+
+            border: none;
+            border-radius: 13px;
+
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            background: linear-gradient(
+                90deg,
+                #ee55b9,
+                #b85ce8,
+                #7c61ff
+            );
+
+            box-shadow:
+                0 10px 30px rgba(213, 72, 190, 0.25);
+
+            transition: 0.3s;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 12px 35px rgba(225, 74, 196, 0.4);
+        }
+
+        .predict-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        /* RESULT CARD */
+        .result-box {
+            margin-top: 25px;
+            padding: 25px;
+
+            border-radius: 18px;
+
+            background: rgba(5, 10, 27, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .result-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+
+            padding: 25px;
+
+            border-radius: 16px;
+
+            background: rgba(255, 50, 100, 0.08);
+            border: 1px solid rgba(255, 80, 120, 0.35);
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            font-size: 38px;
+
+            color: #ff73a8;
+
+            border: 3px solid #ff5b9f;
+
+            box-shadow:
+                0 0 25px rgba(255, 65, 150, 0.35);
+        }
+
+        .status-text h3 {
+            font-size: 28px;
+            color: #ff6d9f;
+        }
+
+        .status-text p {
+            margin-top: 8px;
+            color: #9ba5c3;
+            line-height: 1.5;
+        }
+
+        /* CONFIDENCE */
+        .confidence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 25px 0 10px;
+        }
+
+        .confidence-header span:first-child {
+            color: #cdd4ec;
+            font-weight: 600;
+        }
+
+        #confidenceValue {
+            color: #ff70c7;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .progress {
+            width: 100%;
+            height: 14px;
+
+            background: #1d2542;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+
+            border-radius: 20px;
+
+            background: linear-gradient(
+                90deg,
+                #ff62b9,
+                #d55ee7,
+                #8464ff
+            );
+
+            box-shadow: 0 0 15px rgba(255, 80, 190, 0.5);
+
+            transition: width 0.8s ease;
+        }
+
+        /* RESULT DETAILS */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .detail {
+            padding: 18px;
+
+            border-radius: 14px;
+
+            background: rgba(20, 28, 57, 0.7);
+            border: 1px solid rgba(120, 140, 190, 0.15);
+        }
+
+        .detail-title {
+            color: #8490b4;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            color: #f2eafa;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        /* NORMAL STATE */
+        .normal {
+            background: rgba(50, 220, 150, 0.06);
+            border-color: rgba(60, 220, 160, 0.35);
+        }
+
+        .normal .status-icon {
+            color: #57e3a5;
+            border-color: #57e3a5;
+            box-shadow: 0 0 25px rgba(60, 220, 160, 0.3);
+        }
+
+        .normal .status-text h3 {
+            color: #57e3a5;
+        }
+
+        /* ERROR */
+        .error-message {
+            display: none;
+            margin-top: 15px;
+            padding: 14px;
+            border-radius: 10px;
+            color: #ff9bbd;
+            background: rgba(255, 60, 100, 0.08);
+            border: 1px solid rgba(255, 60, 100, 0.25);
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            color: #697494;
+            margin: 45px 0 25px;
+            font-size: 13px;
+        }
+
+        footer span {
+            color: #ff6cc5;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .form-grid,
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            nav {
+                width: 94%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="nav-links">
+            <a href="#" class="active">⌂ Home</a>
+            <a href="#about">ⓘ About</a>
+            <a href="#project">▣ Project</a>
+        </div>
+    </nav>
+
+    <!-- HEADER -->
+    <section class="hero">
+        <h1>
+            Network Traffic <span>Analyzer</span>
+        </h1>
+
+        <p>
+            Detect potential cyber threats using machine learning
+        </p>
+
+        <div class="hero-line"></div>
+    </section>
+
+    <!-- MAIN -->
+    <main class="main-container">
+
+        <!-- INPUT CARD -->
+        <section class="card">
+
+            <div class="card-title">
+                <div class="icon">▣</div>
+
+                <div>
+                    <h2>Network Traffic Information</h2>
+                </div>
+            </div>
+
+            <p class="card-subtitle">
+                Enter the details below to analyze the network traffic
+            </p>
+
+            <form id="predictionForm">
+
+                <div class="form-grid">
+
+                    <!-- SOURCE PORT -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">⌘</span>
+                            Source Port
+                        </label>
+
+                        <input
+                            type="number"
+                            id="src_port"
+                            placeholder="e.g. 53070"
+                            required
+                        >
+                    </div>
+
+                    <!-- DESTINATION PORT -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">⌘</span>
+                            Destination Port
+                        </label>
+
+                        <input
+                            type="number"
+                            id="dst_port"
+                            placeholder="e.g. 25"
+                            required
+                        >
+                    </div>
+
+                    <!-- PROTOCOL -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">◇</span>
+                            Protocol
+                        </label>
+
+                        <select id="protocol" required>
+                            <option value="TCP">TCP</option>
+                            <option value="UDP">UDP</option>
+                            <option value="ICMP">ICMP</option>
+                        </select>
+                    </div>
+
+                    <!-- INTERNAL TRAFFIC -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">⌂</span>
+                            Internal Traffic
+                        </label>
+
+                        <select id="is_internal_traffic" required>
+                            <option value="false">False</option>
+                            <option value="true">True</option>
+                        </select>
+                    </div>
+
+                    <!-- BYTES SENT -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">↑</span>
+                            Bytes Sent
+                        </label>
+
+                        <input
+                            type="number"
+                            id="bytes_sent"
+                            placeholder="e.g. 2110469"
+                            required
+                        >
+                    </div>
+
+                    <!-- BYTES RECEIVED -->
+                    <div class="form-group">
+                        <label>
+                            <span class="label-icon">↓</span>
+                            Bytes Received
+                        </label>
+
+                        <input
+                            type="number"
+                            id="bytes_received"
+                            placeholder="e.g. 385173"
+                            required
+                        >
+                    </div>
+
+                    <!-- USER AGENT -->
+                    <div class="form-group full">
+                        <label>
+                            <span class="label-icon">▤</span>
+                            User Agent
+                        </label>
+
+                        <input
+                            type="text"
+                            id="user_agent"
+                            placeholder="e.g. Mozilla/5.0..."
+                            required
+                        >
+                    </div>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="predict-btn"
+                    id="predictButton"
+                >
+                    ◉ &nbsp; Analyze Traffic &nbsp; →
+                </button>
+
+            </form>
+
+            <div class="error-message" id="errorMessage"></div>
+
+        </section>
+
+
+        <!-- RESULT CARD -->
+        <section class="card">
+
+            <div class="card-title">
+                <div class="icon">⌁</div>
+
+                <div>
+                    <h2>Analysis Result</h2>
+                </div>
+            </div>
+
+            <div class="result-box">
+
+                <div class="result-status" id="resultStatus">
+
+                    <div class="status-icon" id="statusIcon">
+                        !
+                    </div>
+
+                    <div class="status-text">
+                        <h3 id="resultTitle">
+                            Ready to Analyze
+                        </h3>
+
+                        <p id="resultDescription">
+                            Enter network traffic information and click
+                            Analyze Traffic to run the machine learning model.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <!-- CONFIDENCE -->
+                <div class="confidence-header">
+                    <span>Confidence</span>
+                    <span id="confidenceValue">0%</span>
+                </div>
+
+                <div class="progress">
+                    <div
+                        class="progress-bar"
+                        id="confidenceBar">
+                    </div>
+                </div>
+
+
+                <!-- DETAILS -->
+                <div class="details-grid">
+
+                    <div class="detail">
+                        <div class="detail-title">
+                            Prediction
+                        </div>
+
+                        <div
+                            class="detail-value"
+                            id="predictionValue">
+                            —
+                        </div>
+                    </div>
+
+
+                    <div class="detail">
+                        <div class="detail-title">
+                            Confidence
+                        </div>
+
+                        <div
+                            class="detail-value"
+                            id="confidenceDetail">
+                            —
+                        </div>
+                    </div>
+
+
+                    <div class="detail">
+                        <div class="detail-title">
+                            Status
+                        </div>
+
+                        <div
+                            class="detail-value"
+                            id="statusValue">
+                            Waiting
+                        </div>
+                    </div>
+
+
+                    <div class="detail">
+                        <div class="detail-title">
+                            Analysis Type
+                        </div>
+
+                        <div class="detail-value">
+                            Network Traffic
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer id="project">
+        <span>✦</span>
+        Machine Learning Project
+        <span>•</span>
+        Cybersecurity Threat Detection
+        <span>✦</span>
+    </footer>
+
+
+    <!-- JAVASCRIPT -->
+    <script>
+
+        const form = document.getElementById("predictionForm");
+
+        const button = document.getElementById("predictButton");
+
+        const resultTitle =
+            document.getElementById("resultTitle");
+
+        const resultDescription =
+            document.getElementById("resultDescription");
+
+        const resultStatus =
+            document.getElementById("resultStatus");
+
+        const statusIcon =
+            document.getElementById("statusIcon");
+
+        const predictionValue =
+            document.getElementById("predictionValue");
+
+        const confidenceValue =
+            document.getElementById("confidenceValue");
+
+        const confidenceDetail =
+            document.getElementById("confidenceDetail");
+
+        const confidenceBar =
+            document.getElementById("confidenceBar");
+
+        const statusValue =
+            document.getElementById("statusValue");
+
+        const errorMessage =
+            document.getElementById("errorMessage");
+
+
+        form.addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            errorMessage.style.display = "none";
+
+            button.disabled = true;
+            button.innerHTML = "⟳ &nbsp; Analyzing Traffic...";
+
+
+            const data = {
+
+                src_port:
+                    Number(document.getElementById("src_port").value),
+
+                dst_port:
+                    Number(document.getElementById("dst_port").value),
+
+                protocol:
+                    document.getElementById("protocol").value,
+
+                bytes_sent:
+                    Number(document.getElementById("bytes_sent").value),
+
+                bytes_received:
+                    Number(document.getElementById("bytes_received").value),
+
+                user_agent:
+                    document.getElementById("user_agent").value,
+
+                is_internal_traffic:
+                    document.getElementById("is_internal_traffic").value === "true"
+
+            };
+
+
+            try {
+
+                const response = await fetch("/predict", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(data)
+
+                });
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Prediction request failed."
+                    );
+
+                }
+
+
+                const result = await response.json();
+
+
+                const prediction =
+                    result.prediction;
+
+                const confidence =
+                    Number(result.confidence);
+
+
+                predictionValue.textContent =
+                    prediction;
+
+                confidenceValue.textContent =
+                    confidence.toFixed(0) + "%";
+
+                confidenceDetail.textContent =
+                    confidence.toFixed(0) + "%";
+
+                confidenceBar.style.width =
+                    confidence + "%";
+
+
+                /* ATTACK */
+                if (prediction === "Attack") {
+
+                    resultTitle.textContent =
+                        "THREAT DETECTED";
+
+                    resultDescription.textContent =
+                        "This network traffic is classified as a potential cybersecurity threat.";
+
+                    statusIcon.textContent = "!";
+
+                    statusValue.textContent =
+                        "Malicious Traffic";
+
+                    resultStatus.classList.remove("normal");
+
+                }
+
+
+                /* NORMAL */
+                else {
+
+                    resultTitle.textContent =
+                        "TRAFFIC IS NORMAL";
+
+                    resultDescription.textContent =
+                        "No suspicious activity was detected in this network traffic.";
+
+                    statusIcon.textContent = "✓";
+
+                    statusValue.textContent =
+                        "Safe Traffic";
+
+                    resultStatus.classList.add("normal");
+
+                }
+
+            }
+
+
+            catch (error) {
+
+                errorMessage.textContent =
+                    "Error: " + error.message;
+
+                errorMessage.style.display =
+                    "block";
+
+            }
+
+
+            finally {
+
+                button.disabled = false;
+
+                button.innerHTML =
+                    "◉ &nbsp; Analyze Traffic &nbsp; →";
+
+            }
+
+        });
+
+    </script>
+
+</body>
+</html>
+
